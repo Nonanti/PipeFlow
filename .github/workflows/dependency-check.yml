@@ -1,0 +1,84 @@
+name: Dependency Check
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Every Monday at 6 AM
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '9.0.x'
+
+jobs:
+  check-dependencies:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Check for outdated packages
+      run: |
+        echo "## Outdated Packages Report" > outdated_report.md
+        echo "" >> outdated_report.md
+        
+        for project in $(find . -name "*.csproj"); do
+          echo "### $project" >> outdated_report.md
+          dotnet list "$project" package --outdated >> outdated_report.md
+          echo "" >> outdated_report.md
+        done
+        
+        cat outdated_report.md
+    
+    - name: Check for vulnerable packages
+      id: vulnerable_check
+      run: |
+        echo "## Security Vulnerabilities Report" > security_report.md
+        echo "" >> security_report.md
+        
+        VULNERABLE_FOUND=false
+        for project in $(find . -name "*.csproj"); do
+          echo "### $project" >> security_report.md
+          OUTPUT=$(dotnet list "$project" package --vulnerable --include-transitive)
+          echo "$OUTPUT" >> security_report.md
+          if echo "$OUTPUT" | grep -q "has the following vulnerable packages"; then
+            VULNERABLE_FOUND=true
+          fi
+          echo "" >> security_report.md
+        done
+        
+        cat security_report.md
+        
+        if [ "$VULNERABLE_FOUND" = true ]; then
+          echo "vulnerable=true" >> $GITHUB_OUTPUT
+        else
+          echo "vulnerable=false" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Upload reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-reports
+        path: |
+          outdated_report.md
+          security_report.md
+        retention-days: 30
+    
+    - name: Create issue if vulnerabilities found
+      if: steps.vulnerable_check.outputs.vulnerable == 'true'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const report = fs.readFileSync('security_report.md', 'utf8');
+          
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: 'Security Alert: Vulnerable dependencies detected',
+            body: report,
+            labels: ['security', 'dependencies']
+          });
