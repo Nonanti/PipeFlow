@@ -1,5 +1,10 @@
 # DataFlow
 
+[![NuGet](https://img.shields.io/nuget/v/DataFlow.Core.svg)](https://www.nuget.org/packages/DataFlow.Core)
+[![Downloads](https://img.shields.io/nuget/dt/DataFlow.Core.svg)](https://www.nuget.org/packages/DataFlow.Core)
+[![Build Status](https://github.com/Nonanti/DataFlow/actions/workflows/build.yml/badge.svg)](https://github.com/Nonanti/DataFlow/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 High-performance ETL pipeline library for .NET that actually gets out of your way.
 
 ## What is this?
