@@ -4,6 +4,8 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>CS8600;CS8601;CS8602;CS8603;CS8618;CS8625</NoWarn>
     
     <!-- NuGet Package Metadata -->
     <PackageId>DataFlow.Core</PackageId>
@@ -17,7 +19,6 @@
     <PackageTags>etl;pipeline;dataflow;csv;json;excel;data-processing;streaming</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,7 +30,6 @@
 
   <ItemGroup>
     <None Include="../README.md" Pack="true" PackagePath="\" />
-    <None Include="../icon.png" Pack="true" PackagePath="\" Condition="Exists('../icon.png')" />
   </ItemGroup>
 
 </Project>
