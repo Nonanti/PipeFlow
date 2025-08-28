@@ -86,6 +86,8 @@ jobs:
     needs: build-and-test
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
+    permissions:
+      contents: write
     
     steps:
     - uses: actions/checkout@v4
@@ -100,22 +102,21 @@ jobs:
       id: version
       run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
     
-    - name: Generate release notes
-      id: release_notes
-      run: |
-        echo "# Release v${{ steps.version.outputs.version }}" > release_notes.md
-        echo "" >> release_notes.md
-        echo "## What's Changed" >> release_notes.md
-        git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD >> release_notes.md
-    
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: v${{ steps.version.outputs.version }}
         name: Release v${{ steps.version.outputs.version }}
-        body_path: release_notes.md
+        body: |
+          ## DataFlow v${{ steps.version.outputs.version }}
+          
+          High-performance ETL pipeline library for .NET.
+          
+          ### Installation
+          ```bash
+          dotnet add package DataFlow.Core --version ${{ steps.version.outputs.version }}
+          ```
         draft: false
         prerelease: false
         files: nupkgs/*.nupkg
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GITHUB_TOKEN }}
