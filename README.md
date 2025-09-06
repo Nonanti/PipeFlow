@@ -51,6 +51,9 @@ var pipeline = DataFlow.From.Sql(connectionString)
 
 // In-memory collections
 var pipeline = DataFlow.From.Collection(myList);
+
+// REST APIs
+var pipeline = DataFlow.From.Api("https://api.example.com/data");
 ```
 
 ### Transforming Data
@@ -93,6 +96,9 @@ pipeline.WriteToSql(connectionString, "TargetTable");
 // To collection
 var results = pipeline.ToList();
 var array = pipeline.ToArray();
+
+// To REST API
+pipeline.ToApi("https://api.example.com/import");
 ```
 
 ## Real World Examples
@@ -189,6 +195,43 @@ DataFlow.From.Csv("10gb_log_file.csv")
         Source = row["Source"]
     })
     .WriteToCsv("errors_only.csv");  // Streams directly, uses ~50MB RAM
+```
+
+### Working with REST APIs
+
+Fetch data from APIs with pagination and authentication:
+
+```csharp
+// Read from API with pagination
+DataFlow.From.Api("https://api.github.com/users/microsoft/repos", api => api
+    .WithAuth("your-github-token")
+    .WithPagination(pageSize: 30)
+    .WithRetry(maxRetries: 3, TimeSpan.FromSeconds(2)))
+    .Filter(repo => repo.GetValue<int>("stargazers_count") > 1000)
+    .OrderByDescending(repo => repo["stargazers_count"])
+    .ToCsv("popular_microsoft_repos.csv");
+
+// Send data to API endpoint
+DataFlow.From.Csv("products.csv")
+    .Map(row => new {
+        name = row["ProductName"],
+        price = row.GetValue<decimal>("Price"),
+        category = row["Category"]
+    })
+    .ToApi("https://api.store.com/products", writer => writer
+        .WithAuth("api-key-here")
+        .WithBatchSize(50)
+        .WithMethod(HttpMethod.Post));
+
+// ETL: API to Database
+DataFlow.From.Api("https://jsonplaceholder.typicode.com/users")
+    .Map(row => new {
+        Id = row["id"],
+        Username = row["username"],
+        Email = row["email"],
+        Company = row.GetValue<Dictionary<string, object>>("company")["name"]
+    })
+    .ToSql(connectionString, "Users");
 ```
 
 ## Advanced Features

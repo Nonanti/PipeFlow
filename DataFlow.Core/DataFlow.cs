@@ -5,6 +5,7 @@ using System.Linq;
 using DataFlow.Core.Json;
 using DataFlow.Core.Sql;
 using DataFlow.Core.Excel;
+using DataFlow.Core.Api;
 using DataFlow.Core.Parallel;
 using DataFlow.Core.Validation;
 
@@ -80,6 +81,19 @@ public static class DataFlow
     public IPipeline<DataRow> Excel(string filePath, Action<ExcelReader> configure)
     {
         var reader = new ExcelReader(filePath);
+        configure?.Invoke(reader);
+        return new Pipeline<DataRow>(reader.Read());
+    }
+
+    public IPipeline<DataRow> Api(string url)
+    {
+        var reader = new ApiReader(url);
+        return new Pipeline<DataRow>(reader.Read());
+    }
+
+    public IPipeline<DataRow> Api(string url, Action<ApiReader> configure)
+    {
+        var reader = new ApiReader(url);
         configure?.Invoke(reader);
         return new Pipeline<DataRow>(reader.Read());
     }
@@ -287,6 +301,25 @@ public static class PipelineExtensions
             throw new ArgumentNullException(nameof(pipeline));
         
         var writer = new ExcelWriter(filePath);
+        configure?.Invoke(writer);
+        writer.Write(pipeline.Execute());
+    }
+
+    public static void ToApi(this IPipeline<DataRow> pipeline, string endpoint)
+    {
+        if (pipeline == null)
+            throw new ArgumentNullException(nameof(pipeline));
+        
+        var writer = new ApiWriter(endpoint);
+        writer.Write(pipeline.Execute());
+    }
+
+    public static void ToApi(this IPipeline<DataRow> pipeline, string endpoint, Action<ApiWriter> configure)
+    {
+        if (pipeline == null)
+            throw new ArgumentNullException(nameof(pipeline));
+        
+        var writer = new ApiWriter(endpoint);
         configure?.Invoke(writer);
         writer.Write(pipeline.Execute());
     }
