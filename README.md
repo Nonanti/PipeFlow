@@ -54,6 +54,9 @@ var pipeline = DataFlow.From.Collection(myList);
 
 // REST APIs
 var pipeline = DataFlow.From.Api("https://api.example.com/data");
+
+// MongoDB
+var pipeline = DataFlow.From.MongoDB("mongodb://localhost:27017", "mydb", "users");
 ```
 
 ### Transforming Data
@@ -99,6 +102,9 @@ var array = pipeline.ToArray();
 
 // To REST API
 pipeline.ToApi("https://api.example.com/import");
+
+// To MongoDB
+pipeline.ToMongoDB("mongodb://localhost:27017", "mydb", "users");
 ```
 
 ## Real World Examples
@@ -195,6 +201,54 @@ DataFlow.From.Csv("10gb_log_file.csv")
         Source = row["Source"]
     })
     .WriteToCsv("errors_only.csv");  // Streams directly, uses ~50MB RAM
+```
+
+### Working with MongoDB
+
+MongoDB integration with full query support:
+
+```csharp
+// Read from MongoDB with filtering
+DataFlow.From.MongoDB("mongodb://localhost:27017", "store", "products", mongo => mongo
+    .Where("category", "Electronics")
+    .Sort("price", ascending: false)
+    .Limit(100)
+    .Project("name", "price", "stock"))
+    .Filter(p => p.GetValue<int>("stock") > 0)
+    .ToCsv("available_electronics.csv");
+
+// Complex MongoDB aggregation
+DataFlow.From.MongoDB("mongodb://localhost:27017", "analytics", "events", mongo => mongo
+    .Aggregate("{ '$match': { 'type': 'purchase' } }")
+    .Aggregate("{ '$group': { '_id': '$userId', 'total': { '$sum': '$amount' } } }"))
+    .OrderByDescending(r => r["total"])
+    .Take(10)
+    .ToJson("top_customers.json");
+
+// Upsert data to MongoDB
+DataFlow.From.Csv("products.csv")
+    .ToMongoDB("mongodb://localhost:27017", "store", "products", writer => writer
+        .WithUpsert("sku")  // Use 'sku' field as unique key
+        .WithBatchSize(500)
+        .CreateIndex("sku", "category"));
+
+// SQL to MongoDB migration
+DataFlow.From.Sql(sqlConnection)
+    .Query("SELECT * FROM Users WHERE Active = 1")
+    .Map(row => new DataRow
+    {
+        ["_id"] = row["UserId"],
+        ["email"] = row["Email"].ToString().ToLower(),
+        ["profile"] = new Dictionary<string, object>
+        {
+            ["firstName"] = row["FirstName"],
+            ["lastName"] = row["LastName"],
+            ["age"] = row["Age"]
+        },
+        ["createdAt"] = row["CreatedDate"],
+        ["active"] = true
+    })
+    .ToMongoDB("mongodb://localhost:27017", "app", "users");
 ```
 
 ### Working with REST APIs
