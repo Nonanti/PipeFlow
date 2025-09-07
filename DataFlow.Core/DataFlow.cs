@@ -6,6 +6,7 @@ using DataFlow.Core.Json;
 using DataFlow.Core.Sql;
 using DataFlow.Core.Excel;
 using DataFlow.Core.Api;
+using DataFlow.Core.MongoDB;
 using DataFlow.Core.Parallel;
 using DataFlow.Core.Validation;
 
@@ -94,6 +95,19 @@ public static class DataFlow
     public IPipeline<DataRow> Api(string url, Action<ApiReader> configure)
     {
         var reader = new ApiReader(url);
+        configure?.Invoke(reader);
+        return new Pipeline<DataRow>(reader.Read());
+    }
+
+    public IPipeline<DataRow> MongoDB(string connectionString, string database, string collection)
+    {
+        var reader = new MongoReader(connectionString, database, collection);
+        return new Pipeline<DataRow>(reader.Read());
+    }
+
+    public IPipeline<DataRow> MongoDB(string connectionString, string database, string collection, Action<MongoReader> configure)
+    {
+        var reader = new MongoReader(connectionString, database, collection);
         configure?.Invoke(reader);
         return new Pipeline<DataRow>(reader.Read());
     }
@@ -320,6 +334,25 @@ public static class PipelineExtensions
             throw new ArgumentNullException(nameof(pipeline));
         
         var writer = new ApiWriter(endpoint);
+        configure?.Invoke(writer);
+        writer.Write(pipeline.Execute());
+    }
+
+    public static void ToMongoDB(this IPipeline<DataRow> pipeline, string connectionString, string database, string collection)
+    {
+        if (pipeline == null)
+            throw new ArgumentNullException(nameof(pipeline));
+        
+        var writer = new MongoWriter(connectionString, database, collection);
+        writer.Write(pipeline.Execute());
+    }
+
+    public static void ToMongoDB(this IPipeline<DataRow> pipeline, string connectionString, string database, string collection, Action<MongoWriter> configure)
+    {
+        if (pipeline == null)
+            throw new ArgumentNullException(nameof(pipeline));
+        
+        var writer = new MongoWriter(connectionString, database, collection);
         configure?.Invoke(writer);
         writer.Write(pipeline.Execute());
     }
