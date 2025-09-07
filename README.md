@@ -1,15 +1,9 @@
 # DataFlow
 
 [![NuGet](https://img.shields.io/nuget/v/DataFlow.Core.svg)](https://www.nuget.org/packages/DataFlow.Core)
-[![Downloads](https://img.shields.io/nuget/dt/DataFlow.Core.svg)](https://www.nuget.org/packages/DataFlow.Core)
 [![Build Status](https://github.com/Nonanti/DataFlow/actions/workflows/build.yml/badge.svg)](https://github.com/Nonanti/DataFlow/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-High-performance ETL pipeline library for .NET that actually gets out of your way.
-
-## What is this?
-
-DataFlow is a streaming data pipeline library designed for processing large datasets without blowing up your memory. Think LINQ but for ETL operations - read data from anywhere, transform it, and write it somewhere else. No XML configs, no enterprise architect nonsense. Just simple, chainable operations that work.
+A .NET library for ETL operations. Process CSV, JSON, Excel, SQL and MongoDB data with a simple fluent API.
 
 ## Installation
 
@@ -17,151 +11,121 @@ DataFlow is a streaming data pipeline library designed for processing large data
 dotnet add package DataFlow.Core
 ```
 
-Or grab it from NuGet if you're using Visual Studio.
-
-## Basic Usage
-
-Process a CSV file in three lines:
+## Quick Start
 
 ```csharp
+// Basic CSV processing
 DataFlow.From.Csv("input.csv")
     .Filter(row => row["Status"] == "Active")
     .WriteToCsv("output.csv");
-```
 
-That's the entire API philosophy. Read, transform, write.
-
-## Common Scenarios
-
-### Reading Data
-
-```csharp
-// CSV files
-var pipeline = DataFlow.From.Csv("data.csv");
-
-// JSON files  
-var pipeline = DataFlow.From.Json("data.json");
-
-// Excel spreadsheets
-var pipeline = DataFlow.From.Excel("report.xlsx", sheet: "Sales");
-
-// SQL databases
-var pipeline = DataFlow.From.Sql(connectionString)
-    .Query("SELECT * FROM Orders WHERE Created > @date", new { date = DateTime.Today });
-
-// In-memory collections
-var pipeline = DataFlow.From.Collection(myList);
-
-// REST APIs
-var pipeline = DataFlow.From.Api("https://api.example.com/data");
-
-// MongoDB
-var pipeline = DataFlow.From.MongoDB("mongodb://localhost:27017", "mydb", "users");
-```
-
-### Transforming Data
-
-Chain operations like you would with LINQ:
-
-```csharp
-pipeline
-    .Filter(row => row.GetValue<decimal>("Price") > 0)
-    .Map(row => new {
-        Product = row["Name"],
-        Revenue = row.GetValue<decimal>("Price") * row.GetValue<int>("Quantity"),
-        Category = row["Category"]
-    })
-    .GroupBy(x => x.Category)
-    .Select(group => new {
-        Category = group.Key,
-        TotalRevenue = group.Sum(x => x.Revenue),
-        ProductCount = group.Count()
-    })
-    .OrderByDescending(x => x.TotalRevenue)
-    .Take(10);
-```
-
-### Writing Results
-
-```csharp
-// To CSV
-pipeline.WriteToCsv("output.csv");
-
-// To JSON
-pipeline.WriteToJson("output.json");
-
-// To Excel
-pipeline.WriteToExcel("report.xlsx", "Results");
-
-// To SQL
-pipeline.WriteToSql(connectionString, "TargetTable");
-
-// To collection
-var results = pipeline.ToList();
-var array = pipeline.ToArray();
-
-// To REST API
-pipeline.ToApi("https://api.example.com/import");
-
-// To MongoDB
-pipeline.ToMongoDB("mongodb://localhost:27017", "mydb", "users");
-```
-
-## Real World Examples
-
-### ETL: Database to CSV
-
-Export active customers with their order totals:
-
-```csharp
+// SQL to Excel export
 DataFlow.From.Sql(connectionString)
-    .Query(@"
-        SELECT c.*, COUNT(o.Id) as OrderCount, SUM(o.Total) as TotalSpent 
-        FROM Customers c
-        LEFT JOIN Orders o ON c.Id = o.CustomerId
-        WHERE c.IsActive = 1
-        GROUP BY c.Id")
-    .Map(row => new {
-        CustomerId = row["Id"],
-        Name = row["Name"],
-        Email = row["Email"],
-        OrderCount = row["OrderCount"],
-        TotalSpent = row["TotalSpent"],
-        CustomerValue = row.GetValue<int>("OrderCount") > 10 ? "High" : "Normal"
-    })
-    .OrderByDescending(x => x.TotalSpent)
-    .WriteToCsv("customer_report.csv");
+    .Query("SELECT * FROM Orders WHERE Date > @date", new { date = DateTime.Today })
+    .WriteToExcel("orders.xlsx");
 ```
 
-### Data Cleaning
+## Supported Data Sources
 
-Clean messy CSV data:
+DataFlow can read from and write to:
+- CSV files
+- JSON files
+- Excel files (xlsx)
+- SQL Server databases
+- MongoDB collections
+- REST APIs
+- In-memory collections
+
+## Examples
+
+### CSV Processing
 
 ```csharp
+// Read CSV, transform, and save
+DataFlow.From.Csv("sales.csv")
+    .Filter(row => row.GetValue<decimal>("Amount") > 1000)
+    .Map(row => new {
+        Product = row["ProductName"],
+        Revenue = row.GetValue<decimal>("Amount") * row.GetValue<int>("Quantity")
+    })
+    .WriteToCsv("high_value_sales.csv");
+```
+
+### Database Operations
+
+```csharp
+// Export from SQL Server
+DataFlow.From.Sql(connectionString)
+    .Query("SELECT * FROM Products WHERE InStock = 1")
+    .WriteToJson("products.json");
+
+// Import to SQL Server
+DataFlow.From.Excel("inventory.xlsx")
+    .WriteToSql(connectionString, "Inventory");
+```
+
+### MongoDB Integration
+
+```csharp
+// Query MongoDB
+DataFlow.From.MongoDB("mongodb://localhost", "store", "products")
+    .Where("category", "Electronics")
+    .Sort("price", ascending: false)
+    .WriteToCsv("electronics.csv");
+
+// Update MongoDB from CSV
+DataFlow.From.Csv("product_updates.csv")
+    .ToMongoDB("mongodb://localhost", "store", "products", writer => writer
+        .WithUpsert("sku")
+        .WithBatchSize(500));
+```
+
+### REST API Support
+
+```csharp
+// Fetch from API
+DataFlow.From.Api("https://api.example.com/data")
+    .Filter(item => item["active"] == true)
+    .WriteToJson("active_items.json");
+
+// Send to API
+DataFlow.From.Csv("upload.csv")
+    .ToApi("https://api.example.com/import", api => api
+        .WithAuth("api-key")
+        .WithBatchSize(100));
+```
+
+### Data Transformations
+
+```csharp
+// Complex transformations
 DataFlow.From.Csv("raw_data.csv")
     .RemoveDuplicates("Id")
-    .FillMissing("Email", "no-email@unknown.com")
-    .FillMissing("Country", "USA")
+    .FillMissing("Email", "unknown@example.com")
     .Map(row => {
-        row["Email"] = row["Email"].ToString().ToLower().Trim();
-        row["Phone"] = Regex.Replace(row["Phone"].ToString(), @"[^\d]", "");
+        row["Email"] = row["Email"].ToString().ToLower();
+        row["FullName"] = $"{row["FirstName"]} {row["LastName"]}";
         return row;
     })
-    .Filter(row => IsValidEmail(row["Email"].ToString()))
-    .WriteToCsv("cleaned_data.csv");
+    .GroupBy(row => row["Department"])
+    .Select(group => new {
+        Department = group.Key,
+        EmployeeCount = group.Count(),
+        AverageSalary = group.Average(r => r.GetValue<decimal>("Salary"))
+    })
+    .WriteToJson("department_summary.json");
 ```
 
 ### Parallel Processing
 
-Speed up CPU-intensive operations:
+For better performance with large datasets:
 
 ```csharp
-DataFlow.From.Csv("large_dataset.csv")
-    .AsParallel(maxDegreeOfParallelism: Environment.ProcessorCount)
+DataFlow.From.Csv("large_file.csv")
+    .AsParallel(maxDegreeOfParallelism: 8)
     .Map(row => {
-        // Some expensive operation
-        row["Hash"] = ComputeExpensiveHash(row["Data"]);
-        row["Processed"] = true;
+        // CPU intensive operation
+        row["Hash"] = ComputeHash(row["Data"]);
         return row;
     })
     .WriteToCsv("processed.csv");
@@ -169,215 +133,48 @@ DataFlow.From.Csv("large_dataset.csv")
 
 ### Data Validation
 
-Validate and handle errors:
-
 ```csharp
 var validator = new DataValidator()
-    .Required("Id", "Name", "Email")
+    .Required("Id", "Email")
     .Email("Email")
-    .Range("Age", min: 0, max: 150)
-    .Regex("Phone", @"^\d{10}$")
-    .Custom("StartDate", value => DateTime.Parse(value) <= DateTime.Now);
+    .Range("Age", min: 0, max: 120);
 
 DataFlow.From.Csv("users.csv")
     .Validate(validator)
-    .OnInvalid(ErrorStrategy.LogAndSkip)  // or ThrowException, Fix, Collect
+    .OnInvalid(ErrorStrategy.LogAndSkip)
     .WriteToCsv("valid_users.csv");
-
-// Access validation errors
-var errors = pipeline.ValidationErrors;
-```
-
-### Streaming Large Files
-
-Process multi-gigabyte files with constant memory usage:
-
-```csharp
-DataFlow.From.Csv("10gb_log_file.csv")
-    .Filter(row => row["Level"] == "ERROR")
-    .Select(row => new {
-        Timestamp = row["Timestamp"],
-        Message = row["Message"],
-        Source = row["Source"]
-    })
-    .WriteToCsv("errors_only.csv");  // Streams directly, uses ~50MB RAM
-```
-
-### Working with MongoDB
-
-MongoDB integration with full query support:
-
-```csharp
-// Read from MongoDB with filtering
-DataFlow.From.MongoDB("mongodb://localhost:27017", "store", "products", mongo => mongo
-    .Where("category", "Electronics")
-    .Sort("price", ascending: false)
-    .Limit(100)
-    .Project("name", "price", "stock"))
-    .Filter(p => p.GetValue<int>("stock") > 0)
-    .ToCsv("available_electronics.csv");
-
-// Complex MongoDB aggregation
-DataFlow.From.MongoDB("mongodb://localhost:27017", "analytics", "events", mongo => mongo
-    .Aggregate("{ '$match': { 'type': 'purchase' } }")
-    .Aggregate("{ '$group': { '_id': '$userId', 'total': { '$sum': '$amount' } } }"))
-    .OrderByDescending(r => r["total"])
-    .Take(10)
-    .ToJson("top_customers.json");
-
-// Upsert data to MongoDB
-DataFlow.From.Csv("products.csv")
-    .ToMongoDB("mongodb://localhost:27017", "store", "products", writer => writer
-        .WithUpsert("sku")  // Use 'sku' field as unique key
-        .WithBatchSize(500)
-        .CreateIndex("sku", "category"));
-
-// SQL to MongoDB migration
-DataFlow.From.Sql(sqlConnection)
-    .Query("SELECT * FROM Users WHERE Active = 1")
-    .Map(row => new DataRow
-    {
-        ["_id"] = row["UserId"],
-        ["email"] = row["Email"].ToString().ToLower(),
-        ["profile"] = new Dictionary<string, object>
-        {
-            ["firstName"] = row["FirstName"],
-            ["lastName"] = row["LastName"],
-            ["age"] = row["Age"]
-        },
-        ["createdAt"] = row["CreatedDate"],
-        ["active"] = true
-    })
-    .ToMongoDB("mongodb://localhost:27017", "app", "users");
-```
-
-### Working with REST APIs
-
-Fetch data from APIs with pagination and authentication:
-
-```csharp
-// Read from API with pagination
-DataFlow.From.Api("https://api.github.com/users/microsoft/repos", api => api
-    .WithAuth("your-github-token")
-    .WithPagination(pageSize: 30)
-    .WithRetry(maxRetries: 3, TimeSpan.FromSeconds(2)))
-    .Filter(repo => repo.GetValue<int>("stargazers_count") > 1000)
-    .OrderByDescending(repo => repo["stargazers_count"])
-    .ToCsv("popular_microsoft_repos.csv");
-
-// Send data to API endpoint
-DataFlow.From.Csv("products.csv")
-    .Map(row => new {
-        name = row["ProductName"],
-        price = row.GetValue<decimal>("Price"),
-        category = row["Category"]
-    })
-    .ToApi("https://api.store.com/products", writer => writer
-        .WithAuth("api-key-here")
-        .WithBatchSize(50)
-        .WithMethod(HttpMethod.Post));
-
-// ETL: API to Database
-DataFlow.From.Api("https://jsonplaceholder.typicode.com/users")
-    .Map(row => new {
-        Id = row["id"],
-        Username = row["username"],
-        Email = row["email"],
-        Company = row.GetValue<Dictionary<string, object>>("company")["name"]
-    })
-    .ToSql(connectionString, "Users");
-```
-
-## Advanced Features
-
-### Custom Data Sources
-
-Implement `IDataSource` for custom sources:
-
-```csharp
-public class MongoDataSource : IDataSource
-{
-    public IEnumerable<DataRow> Read()
-    {
-        // Your MongoDB reading logic
-        foreach (var doc in collection.Find(filter))
-        {
-            yield return new DataRow(doc.ToDictionary());
-        }
-    }
-}
-
-// Use it
-var pipeline = DataFlow.From.Custom(new MongoDataSource());
-```
-
-### Custom Transformations
-
-Create reusable transformations:
-
-```csharp
-public static class MyTransformations
-{
-    public static IPipeline<T> NormalizePhoneNumbers<T>(this IPipeline<T> pipeline)
-    {
-        return pipeline.Map(row => {
-            if (row.ContainsKey("Phone"))
-            {
-                row["Phone"] = NormalizePhone(row["Phone"].ToString());
-            }
-            return row;
-        });
-    }
-}
-
-// Use it
-pipeline.NormalizePhoneNumbers().WriteToCsv("output.csv");
-```
-
-### Progress Tracking
-
-Monitor long-running operations:
-
-```csharp
-var progress = new Progress<int>(percent => 
-    Console.WriteLine($"Processing: {percent}%"));
-
-DataFlow.From.Csv("large_file.csv")
-    .WithProgress(progress)
-    .Filter(row => ComplexFilter(row))
-    .WriteToCsv("filtered.csv");
 ```
 
 ## Performance
 
-Benchmarks on 1M records (Intel i7, 16GB RAM):
+DataFlow uses streaming to process data efficiently. Memory usage remains constant regardless of file size.
 
-| Operation | Memory Usage | Time | Records/sec |
-|-----------|-------------|------|-------------|
-| CSV Read + Filter + Write | 42 MB | 3.2s | 312,500 |
-| JSON Parse + Transform | 156 MB | 5.1s | 196,078 |
-| SQL Read + Group + Export | 89 MB | 4.7s | 212,765 |
-| Parallel Transform (8 cores) | 203 MB | 1.4s | 714,285 |
-
-Memory usage stays constant regardless of file size when streaming.
+Benchmark results (1M records):
+- CSV read/write: ~3 seconds
+- JSON processing: ~5 seconds
+- SQL operations: ~4 seconds
+- Parallel processing: ~1.5 seconds (8 cores)
 
 ## Configuration
 
-Global settings via `DataFlowConfig`:
-
 ```csharp
 DataFlowConfig.Configure(config => {
-    config.DefaultCsvDelimiter = ';';
-    config.DefaultDateFormat = "yyyy-MM-dd";
+    config.DefaultCsvDelimiter = ',';
     config.BufferSize = 8192;
-    config.EnableAutoTypeConversion = true;
     config.ThrowOnMissingColumns = false;
 });
 ```
+
+## Requirements
+
+- .NET 6.0 or later
+- SQL Server 2012+ (for SQL features)
+- MongoDB 4.0+ (for MongoDB features)
+
+## Contributing
+
+Pull requests are welcome. Please make sure to update tests as appropriate.
+
 ## License
 
-MIT - Do whatever you want with it.
-
----
-
-Built because I got tired of writing the same ETL code over and over.
+MIT
