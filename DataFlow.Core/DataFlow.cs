@@ -2,13 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using DataFlow.Core.Json;
 using DataFlow.Core.Sql;
 using DataFlow.Core.Excel;
 using DataFlow.Core.Api;
 using DataFlow.Core.MongoDB;
+using DataFlow.Core.Cloud;
 using DataFlow.Core.Parallel;
 using DataFlow.Core.Validation;
+using Amazon;
 
 namespace DataFlow.Core;
 
@@ -29,6 +32,19 @@ public static class DataFlow
         var reader = new CsvReader(filePath);
         configure?.Invoke(reader);
         return new Pipeline<DataRow>(reader.Read());
+    }
+
+    public IAsyncEnumerable<DataRow> CsvAsync(string filePath)
+    {
+        var reader = new CsvReaderAsync(filePath);
+        return reader.ReadAsync();
+    }
+
+    public IAsyncEnumerable<DataRow> CsvAsync(string filePath, Action<CsvReaderAsync> configure)
+    {
+        var reader = new CsvReaderAsync(filePath);
+        configure?.Invoke(reader);
+        return reader.ReadAsync();
     }
 
     public IPipeline<T> Collection<T>(IEnumerable<T> items)
@@ -110,6 +126,40 @@ public static class DataFlow
         var reader = new MongoReader(connectionString, database, collection);
         configure?.Invoke(reader);
         return new Pipeline<DataRow>(reader.Read());
+    }
+
+    public async Task<IPipeline<DataRow>> S3Csv(string bucketName, string key, string region = "us-east-1")
+    {
+        var tempFile = Path.GetTempFileName();
+        var s3Reader = new S3Reader(bucketName, key)
+            .WithRegion(RegionEndpoint.GetBySystemName(region));
+        
+        await s3Reader.DownloadToFileAsync(tempFile);
+        
+        var csvReader = new CsvReader(tempFile);
+        return new Pipeline<DataRow>(csvReader.Read());
+    }
+
+    public async Task<IPipeline<DataRow>> AzureBlobCsv(string connectionString, string containerName, string blobName)
+    {
+        var tempFile = Path.GetTempFileName();
+        var azureReader = new AzureBlobReader(connectionString, containerName, blobName);
+        
+        await azureReader.DownloadToFileAsync(tempFile);
+        
+        var csvReader = new CsvReader(tempFile);
+        return new Pipeline<DataRow>(csvReader.Read());
+    }
+
+    public async Task<IPipeline<DataRow>> GoogleCloudCsv(string bucketName, string objectName)
+    {
+        var tempFile = Path.GetTempFileName();
+        var gcsReader = new GoogleCloudStorageReader(bucketName, objectName);
+        
+        await gcsReader.DownloadToFileAsync(tempFile);
+        
+        var csvReader = new CsvReader(tempFile);
+        return new Pipeline<DataRow>(csvReader.Read());
     }
     }
 
@@ -465,5 +515,49 @@ public static class PipelineExtensions
 
         var results = validator.ValidateAll(pipeline.Execute());
         return new Pipeline<ValidationResult>(results);
+    }
+
+    public static async Task ToS3Csv(this IPipeline<DataRow> pipeline, string bucketName, string key, string region = "us-east-1")
+    {
+        if (pipeline == null)
+            throw new ArgumentNullException(nameof(pipeline));
+        
+        var tempFile = Path.GetTempFileName();
+        var csvWriter = new CsvWriter(tempFile);
+        csvWriter.Write(pipeline.Execute());
+        
+        var s3Writer = new S3Writer(bucketName, key)
+            .WithRegion(RegionEndpoint.GetBySystemName(region));
+        
+        await s3Writer.UploadFileAsync(tempFile);
+        File.Delete(tempFile);
+    }
+
+    public static async Task ToAzureBlobCsv(this IPipeline<DataRow> pipeline, string connectionString, string containerName, string blobName)
+    {
+        if (pipeline == null)
+            throw new ArgumentNullException(nameof(pipeline));
+        
+        var tempFile = Path.GetTempFileName();
+        var csvWriter = new CsvWriter(tempFile);
+        csvWriter.Write(pipeline.Execute());
+        
+        var azureWriter = new AzureBlobWriter(connectionString, containerName, blobName);
+        await azureWriter.UploadFileAsync(tempFile);
+        File.Delete(tempFile);
+    }
+
+    public static async Task ToGoogleCloudCsv(this IPipeline<DataRow> pipeline, string bucketName, string objectName)
+    {
+        if (pipeline == null)
+            throw new ArgumentNullException(nameof(pipeline));
+        
+        var tempFile = Path.GetTempFileName();
+        var csvWriter = new CsvWriter(tempFile);
+        csvWriter.Write(pipeline.Execute());
+        
+        var gcsWriter = new GoogleCloudStorageWriter(bucketName, objectName);
+        await gcsWriter.UploadFileAsync(tempFile);
+        File.Delete(tempFile);
     }
 }

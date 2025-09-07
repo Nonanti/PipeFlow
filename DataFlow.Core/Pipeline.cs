@@ -8,18 +8,18 @@ namespace DataFlow.Core;
 public class Pipeline<T> : IPipeline<T>
 {
     private readonly IEnumerable<T> _source;
-    private readonly List<Func<IEnumerable<T>, IEnumerable<T>>> _operations;
+    private readonly Func<IEnumerable<T>, IEnumerable<T>> _operation;
 
     public Pipeline(IEnumerable<T> source)
     {
         _source = source ?? throw new ArgumentNullException(nameof(source));
-        _operations = new List<Func<IEnumerable<T>, IEnumerable<T>>>();
+        _operation = null;
     }
 
-    private Pipeline(IEnumerable<T> source, List<Func<IEnumerable<T>, IEnumerable<T>>> operations)
+    private Pipeline(IEnumerable<T> source, Func<IEnumerable<T>, IEnumerable<T>> operation)
     {
         _source = source;
-        _operations = new List<Func<IEnumerable<T>, IEnumerable<T>>>(operations);
+        _operation = operation;
     }
 
     public IPipeline<T> Filter(Func<T, bool> predicate)
@@ -27,9 +27,8 @@ public class Pipeline<T> : IPipeline<T>
         if (predicate == null)
             throw new ArgumentNullException(nameof(predicate));
         
-        var newPipeline = new Pipeline<T>(_source, _operations);
-        newPipeline._operations.Add(data => data.Where(predicate));
-        return newPipeline;
+        var newOperation = CreateOperation(data => data.Where(predicate));
+        return new Pipeline<T>(_source, newOperation);
     }
 
     public IPipeline<T> Where(Func<T, bool> predicate)
@@ -42,7 +41,7 @@ public class Pipeline<T> : IPipeline<T>
         if (selector == null)
             throw new ArgumentNullException(nameof(selector));
         
-        var transformedData = Execute().Select(selector);
+        var transformedData = GetSource().Select(selector);
         return new Pipeline<TResult>(transformedData);
     }
 
@@ -56,7 +55,7 @@ public class Pipeline<T> : IPipeline<T>
         if (selector == null)
             throw new ArgumentNullException(nameof(selector));
         
-        var flattened = Execute().SelectMany(selector);
+        var flattened = GetSource().SelectMany(selector);
         return new Pipeline<TResult>(flattened);
     }
 
@@ -65,9 +64,8 @@ public class Pipeline<T> : IPipeline<T>
         if (count < 0)
             throw new ArgumentOutOfRangeException(nameof(count), "Count must be non-negative");
         
-        var newPipeline = new Pipeline<T>(_source, _operations);
-        newPipeline._operations.Add(data => data.Take(count));
-        return newPipeline;
+        var newOperation = CreateOperation(data => data.Take(count));
+        return new Pipeline<T>(_source, newOperation);
     }
 
     public IPipeline<T> Skip(int count)
@@ -75,16 +73,14 @@ public class Pipeline<T> : IPipeline<T>
         if (count < 0)
             throw new ArgumentOutOfRangeException(nameof(count), "Count must be non-negative");
         
-        var newPipeline = new Pipeline<T>(_source, _operations);
-        newPipeline._operations.Add(data => data.Skip(count));
-        return newPipeline;
+        var newOperation = CreateOperation(data => data.Skip(count));
+        return new Pipeline<T>(_source, newOperation);
     }
 
     public IPipeline<T> Distinct()
     {
-        var newPipeline = new Pipeline<T>(_source, _operations);
-        newPipeline._operations.Add(data => data.Distinct());
-        return newPipeline;
+        var newOperation = CreateOperation(data => data.Distinct());
+        return new Pipeline<T>(_source, newOperation);
     }
 
     public IPipeline<T> OrderBy<TKey>(Func<T, TKey> keySelector)
@@ -92,9 +88,8 @@ public class Pipeline<T> : IPipeline<T>
         if (keySelector == null)
             throw new ArgumentNullException(nameof(keySelector));
         
-        var newPipeline = new Pipeline<T>(_source, _operations);
-        newPipeline._operations.Add(data => data.OrderBy(keySelector));
-        return newPipeline;
+        var newOperation = CreateOperation(data => data.OrderBy(keySelector));
+        return new Pipeline<T>(_source, newOperation);
     }
 
     public IPipeline<T> OrderByDescending<TKey>(Func<T, TKey> keySelector)
@@ -102,21 +97,37 @@ public class Pipeline<T> : IPipeline<T>
         if (keySelector == null)
             throw new ArgumentNullException(nameof(keySelector));
         
-        var newPipeline = new Pipeline<T>(_source, _operations);
-        newPipeline._operations.Add(data => data.OrderByDescending(keySelector));
-        return newPipeline;
+        var newOperation = CreateOperation(data => data.OrderByDescending(keySelector));
+        return new Pipeline<T>(_source, newOperation);
     }
 
     public IEnumerable<T> Execute()
     {
-        IEnumerable<T> result = _source;
-        
-        foreach (var operation in _operations)
+        return GetSource();
+    }
+
+    private IEnumerable<T> GetSource()
+    {
+        if (_operation == null)
         {
-            result = operation(result);
+            return _source;
         }
-        
-        return result;
+        else
+        {
+            return _operation(_source);
+        }
+    }
+
+    private Func<IEnumerable<T>, IEnumerable<T>> CreateOperation(Func<IEnumerable<T>, IEnumerable<T>> newOp)
+    {
+        if (_operation == null)
+        {
+            return newOp;
+        }
+        else
+        {
+            return data => newOp(_operation(data));
+        }
     }
 
     public async Task<IEnumerable<T>> ExecuteAsync()
@@ -129,7 +140,7 @@ public class Pipeline<T> : IPipeline<T>
         if (action == null)
             throw new ArgumentNullException(nameof(action));
         
-        foreach (var item in Execute())
+        foreach (var item in GetSource())
         {
             action(item);
         }
@@ -140,7 +151,7 @@ public class Pipeline<T> : IPipeline<T>
         if (action == null)
             throw new ArgumentNullException(nameof(action));
         
-        foreach (var item in Execute())
+        foreach (var item in GetSource())
         {
             await action(item);
         }
@@ -148,26 +159,26 @@ public class Pipeline<T> : IPipeline<T>
 
     public List<T> ToList()
     {
-        return Execute().ToList();
+        return GetSource().ToList();
     }
 
     public T[] ToArray()
     {
-        return Execute().ToArray();
+        return GetSource().ToArray();
     }
 
     public T First()
     {
-        return Execute().First();
+        return GetSource().First();
     }
 
     public T FirstOrDefault()
     {
-        return Execute().FirstOrDefault();
+        return GetSource().FirstOrDefault();
     }
 
     public int Count()
     {
-        return Execute().Count();
+        return GetSource().Count();
     }
 }

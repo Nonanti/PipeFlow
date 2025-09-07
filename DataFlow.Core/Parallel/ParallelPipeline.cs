@@ -22,11 +22,14 @@ public class ParallelPipeline<T> : IPipeline<T>
         if (predicate == null)
             throw new ArgumentNullException(nameof(predicate));
 
-        var filtered = ExecuteParallel()
-            .Where(predicate)
-            .ToList();
-
-        return new Pipeline<T>(filtered);
+        var source = _innerPipeline.Execute();
+        var parallelSource = source.AsParallel();
+        if (_maxDegreeOfParallelism > 0)
+        {
+            parallelSource = parallelSource.WithDegreeOfParallelism(_maxDegreeOfParallelism);
+        }
+        
+        return new Pipeline<T>(parallelSource.Where(predicate));
     }
 
     public IPipeline<T> Where(Func<T, bool> predicate)
@@ -39,11 +42,14 @@ public class ParallelPipeline<T> : IPipeline<T>
         if (selector == null)
             throw new ArgumentNullException(nameof(selector));
 
-        var mapped = ExecuteParallel()
-            .Select(selector)
-            .ToList();
-
-        return new Pipeline<TResult>(mapped);
+        var source = _innerPipeline.Execute();
+        var parallelSource = source.AsParallel();
+        if (_maxDegreeOfParallelism > 0)
+        {
+            parallelSource = parallelSource.WithDegreeOfParallelism(_maxDegreeOfParallelism);
+        }
+        
+        return new Pipeline<TResult>(parallelSource.Select(selector));
     }
 
     public IPipeline<TResult> Select<TResult>(Func<T, TResult> selector)
@@ -56,11 +62,14 @@ public class ParallelPipeline<T> : IPipeline<T>
         if (selector == null)
             throw new ArgumentNullException(nameof(selector));
 
-        var flattened = ExecuteParallel()
-            .SelectMany(selector)
-            .ToList();
-
-        return new Pipeline<TResult>(flattened);
+        var source = _innerPipeline.Execute();
+        var parallelSource = source.AsParallel();
+        if (_maxDegreeOfParallelism > 0)
+        {
+            parallelSource = parallelSource.WithDegreeOfParallelism(_maxDegreeOfParallelism);
+        }
+        
+        return new Pipeline<TResult>(parallelSource.SelectMany(selector));
     }
 
     public IPipeline<T> Take(int count)
@@ -75,11 +84,14 @@ public class ParallelPipeline<T> : IPipeline<T>
 
     public IPipeline<T> Distinct()
     {
-        var distinct = ExecuteParallel()
-            .Distinct()
-            .ToList();
+        var source = _innerPipeline.Execute();
+        var parallelSource = source.AsParallel();
+        if (_maxDegreeOfParallelism > 0)
+        {
+            parallelSource = parallelSource.WithDegreeOfParallelism(_maxDegreeOfParallelism);
+        }
         
-        return new Pipeline<T>(distinct);
+        return new Pipeline<T>(parallelSource.Distinct());
     }
 
     public IPipeline<T> OrderBy<TKey>(Func<T, TKey> keySelector)
@@ -87,11 +99,14 @@ public class ParallelPipeline<T> : IPipeline<T>
         if (keySelector == null)
             throw new ArgumentNullException(nameof(keySelector));
 
-        var ordered = ExecuteParallel()
-            .OrderBy(keySelector)
-            .ToList();
-
-        return new Pipeline<T>(ordered);
+        var source = _innerPipeline.Execute();
+        var parallelSource = source.AsParallel();
+        if (_maxDegreeOfParallelism > 0)
+        {
+            parallelSource = parallelSource.WithDegreeOfParallelism(_maxDegreeOfParallelism);
+        }
+        
+        return new Pipeline<T>(parallelSource.OrderBy(keySelector));
     }
 
     public IPipeline<T> OrderByDescending<TKey>(Func<T, TKey> keySelector)
@@ -99,21 +114,36 @@ public class ParallelPipeline<T> : IPipeline<T>
         if (keySelector == null)
             throw new ArgumentNullException(nameof(keySelector));
 
-        var ordered = ExecuteParallel()
-            .OrderByDescending(keySelector)
-            .ToList();
-
-        return new Pipeline<T>(ordered);
+        var source = _innerPipeline.Execute();
+        var parallelSource = source.AsParallel();
+        if (_maxDegreeOfParallelism > 0)
+        {
+            parallelSource = parallelSource.WithDegreeOfParallelism(_maxDegreeOfParallelism);
+        }
+        
+        return new Pipeline<T>(parallelSource.OrderByDescending(keySelector));
     }
 
     public IEnumerable<T> Execute()
     {
-        return ExecuteParallel();
+        var source = _innerPipeline.Execute();
+        if (_maxDegreeOfParallelism == 1)
+        {
+            return source;
+        }
+        
+        var parallelSource = source.AsParallel();
+        if (_maxDegreeOfParallelism > 0)
+        {
+            parallelSource = parallelSource.WithDegreeOfParallelism(_maxDegreeOfParallelism);
+        }
+        
+        return parallelSource;
     }
 
     public async Task<IEnumerable<T>> ExecuteAsync()
     {
-        return await Task.Run(() => ExecuteParallel());
+        return await Task.Run(() => Execute());
     }
 
     public void ForEach(Action<T> action)
@@ -159,12 +189,12 @@ public class ParallelPipeline<T> : IPipeline<T>
 
     public List<T> ToList()
     {
-        return ExecuteParallel().ToList();
+        return Execute().ToList();
     }
 
     public T[] ToArray()
     {
-        return ExecuteParallel().ToArray();
+        return Execute().ToArray();
     }
 
     public T First()
@@ -179,31 +209,7 @@ public class ParallelPipeline<T> : IPipeline<T>
 
     public int Count()
     {
-        return ExecuteParallel().Count();
+        return Execute().Count();
     }
 
-    private IEnumerable<T> ExecuteParallel()
-    {
-        var source = _innerPipeline.Execute();
-        
-        if (_maxDegreeOfParallelism == 1)
-        {
-            return source;
-        }
-
-        var result = new ConcurrentBag<T>();
-        
-        var options = new ParallelOptions();
-        if (_maxDegreeOfParallelism > 0)
-        {
-            options.MaxDegreeOfParallelism = _maxDegreeOfParallelism;
-        }
-
-        System.Threading.Tasks.Parallel.ForEach(source, options, item =>
-        {
-            result.Add(item);
-        });
-
-        return result;
-    }
 }

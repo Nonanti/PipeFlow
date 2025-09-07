@@ -20,12 +20,12 @@ public class MongoReader
 
     public MongoReader(string connectionString, string databaseName, string collectionName)
     {
-        if (string.IsNullOrEmpty(connectionString))
-            throw new ArgumentNullException(nameof(connectionString));
-        if (string.IsNullOrEmpty(databaseName))
-            throw new ArgumentNullException(nameof(databaseName));
-        if (string.IsNullOrEmpty(collectionName))
-            throw new ArgumentNullException(nameof(collectionName));
+        if (connectionString == null)
+            throw new ArgumentNullException("connectionString");
+        if (databaseName == null)
+            throw new ArgumentNullException("databaseName");
+        if (collectionName == null)
+            throw new ArgumentNullException("collectionName");
             
         _connectionString = connectionString;
         _databaseName = databaseName;
@@ -78,16 +78,18 @@ public class MongoReader
 
         foreach (var field in fields)
         {
-            projection = projection == null 
-                ? projectionBuilder.Include(field) 
-                : projection.Include(field);
+            if (projection == null)
+                projection = projectionBuilder.Include(field);
+            else
+                projection = projection.Include(field);
         }
 
-        if (projection != null && !fields.Contains("_id"))
+        if (projection != null)
         {
-            projection = projection.Exclude("_id");
+            if (!fields.Contains("_id"))
+                projection = projection.Exclude("_id");
         }
-
+        
         _projection = projection;
         return this;
     }
@@ -123,13 +125,11 @@ public class MongoReader
         }
         else
         {
-            var findOptions = new FindOptions<BsonDocument, BsonDocument>
-            {
-                Sort = _sort,
-                Limit = _limit,
-                Skip = _skip,
-                Projection = _projection
-            };
+            var findOptions = new FindOptions<BsonDocument, BsonDocument>();
+            findOptions.Sort = _sort;
+            findOptions.Limit = _limit;
+            findOptions.Skip = _skip;
+            findOptions.Projection = _projection;
 
             var cursor = collection.Find(_filter).Sort(_sort).Limit(_limit).Skip(_skip).Project<BsonDocument>(_projection);
             

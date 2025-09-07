@@ -13,6 +13,8 @@ public class CsvReader
     private bool _hasHeaders = true;
     private Encoding _encoding = Encoding.UTF8;
     private bool _trimValues = true;
+    private bool _autoConvert = true;
+    private int _bufferSize = 65536;
 
     public CsvReader(string filePath)
     {
@@ -49,9 +51,24 @@ public class CsvReader
         return this;
     }
 
+    public CsvReader WithAutoConvert(bool autoConvert = true)
+    {
+        _autoConvert = autoConvert;
+        return this;
+    }
+
+    public CsvReader WithBufferSize(int bufferSize)
+    {
+        if (bufferSize <= 0)
+            throw new ArgumentException("Buffer size must be positive", nameof(bufferSize));
+        _bufferSize = bufferSize;
+        return this;
+    }
+
     public IEnumerable<DataRow> Read()
     {
-        using var reader = new StreamReader(_filePath, _encoding);
+        using var stream = new FileStream(_filePath, FileMode.Open, FileAccess.Read, FileShare.Read, _bufferSize, FileOptions.SequentialScan);
+        using var reader = new StreamReader(stream, _encoding, false, _bufferSize);
         string[] headers = null;
         int lineNumber = 0;
 
@@ -81,8 +98,19 @@ public class CsvReader
             var row = new DataRow();
             for (int i = 0; i < Math.Min(headers.Length, values.Length); i++)
             {
-                var value = _trimValues ? values[i]?.Trim() : values[i];
-                row[headers[i]] = ConvertValue(value);
+                var value = values[i];
+                if (_trimValues && value != null)
+                {
+                    value = value.Trim();
+                }
+                if (_autoConvert)
+                {
+                    row[headers[i]] = ConvertValue(value);
+                }
+                else
+                {
+                    row[headers[i]] = value;
+                }
             }
 
             yield return row;
@@ -94,7 +122,7 @@ public class CsvReader
         if (reader.EndOfStream)
             return null;
 
-        var line = new StringBuilder();
+        var line = new StringBuilder(256);
         bool inQuotes = false;
         int c;
 
@@ -120,19 +148,23 @@ public class CsvReader
             }
         }
 
-        var result = line.ToString();
-        if (result.EndsWith("\r\n"))
-            return result.Substring(0, result.Length - 2);
-        if (result.EndsWith("\n") || result.EndsWith("\r"))
-            return result.Substring(0, result.Length - 1);
+        var length = line.Length;
+        if (length >= 2 && line[length - 2] == '\r' && line[length - 1] == '\n')
+        {
+            line.Length = length - 2;
+        }
+        else if (length >= 1 && (line[length - 1] == '\n' || line[length - 1] == '\r'))
+        {
+            line.Length = length - 1;
+        }
         
-        return result;
+        return line.ToString();
     }
 
     private string[] ParseCsvLine(string line)
     {
-        var result = new List<string>();
-        var currentField = new StringBuilder();
+        var result = new List<string>(32);
+        var currentField = new StringBuilder(128);
         bool inQuotes = false;
 
         for (int i = 0; i < line.Length; i++)
@@ -178,17 +210,25 @@ public class CsvReader
         if (string.IsNullOrEmpty(value))
             return null;
 
-        if (int.TryParse(value, out int intValue))
+        if (value.Length <= 10 && int.TryParse(value, out int intValue))
             return intValue;
 
-        if (double.TryParse(value, out double doubleValue))
+        if (value.Contains('.') && double.TryParse(value, out double doubleValue))
             return doubleValue;
 
-        if (bool.TryParse(value, out bool boolValue))
-            return boolValue;
+        if (value.Length <= 5)
+        {
+            if (value == "true" || value == "True" || value == "TRUE")
+                return true;
+            if (value == "false" || value == "False" || value == "FALSE")
+                return false;
+        }
 
-        if (DateTime.TryParse(value, out DateTime dateValue))
-            return dateValue;
+        if (value.Contains('-') || value.Contains('/'))
+        {
+            if (DateTime.TryParse(value, out DateTime dateValue))
+                return dateValue;
+        }
 
         return value;
     }

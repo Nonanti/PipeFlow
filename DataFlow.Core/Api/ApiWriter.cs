@@ -21,7 +21,10 @@ public class ApiWriter
 
     public ApiWriter(string endpoint)
     {
-        _endpoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
+        if (endpoint == null)
+            throw new ArgumentNullException("endpoint");
+            
+        _endpoint = endpoint;
         _httpClient = new HttpClient();
         _headers = new Dictionary<string, string>();
     }
@@ -114,7 +117,7 @@ public class ApiWriter
         var request = new HttpRequestMessage(_method, _endpoint);
         request.Content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        if (!string.IsNullOrEmpty(_authToken))
+        if (_authToken != null)
         {
             request.Headers.Add("Authorization", _authToken);
         }

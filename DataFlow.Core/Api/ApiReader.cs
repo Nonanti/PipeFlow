@@ -22,7 +22,10 @@ public class ApiReader
 
     public ApiReader(string baseUrl)
     {
-        _baseUrl = baseUrl ?? throw new ArgumentNullException(nameof(baseUrl));
+        if (baseUrl == null)
+            throw new ArgumentNullException("baseUrl");
+            
+        _baseUrl = baseUrl;
         _httpClient = new HttpClient();
         _headers = new Dictionary<string, string>();
     }
@@ -42,7 +45,7 @@ public class ApiReader
     public ApiReader WithRetry(int maxRetries, TimeSpan? delay = null)
     {
         _maxRetries = maxRetries;
-        if (delay.HasValue)
+        if (delay != null)
             _retryDelay = delay.Value;
         return this;
     }
@@ -70,7 +73,7 @@ public class ApiReader
     {
         var results = new List<DataRow>();
 
-        if (_pageSize.HasValue)
+        if (_pageSize != null)
         {
             int page = 1;
             bool hasMoreData = true;
@@ -103,7 +106,11 @@ public class ApiReader
 
     private string BuildPaginatedUrl(int page)
     {
-        var separator = _baseUrl.Contains("?") ? "&" : "?";
+        string separator;
+        if (_baseUrl.Contains("?"))
+            separator = "&";
+        else
+            separator = "?";
         return $"{_baseUrl}{separator}{_pageParameter}={page}&{_pageSizeParameter}={_pageSize}";
     }
 
@@ -117,7 +124,7 @@ public class ApiReader
             {
                 var request = new HttpRequestMessage(HttpMethod.Get, url);
                 
-                if (!string.IsNullOrEmpty(_authToken))
+                if (_authToken != null)
                 {
                     request.Headers.Add("Authorization", _authToken);
                 }
@@ -224,17 +231,28 @@ public class ApiReader
 
     private object GetJsonValue(JsonElement element)
     {
-        return element.ValueKind switch
+        switch (element.ValueKind)
         {
-            JsonValueKind.String => element.GetString(),
-            JsonValueKind.Number => element.TryGetInt64(out var longValue) ? longValue : element.GetDouble(),
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            JsonValueKind.Null => null,
-            JsonValueKind.Array => element.ToString(),
-            JsonValueKind.Object => element.ToString(),
-            _ => element.ToString()
-        };
+            case JsonValueKind.String:
+                return element.GetString();
+            case JsonValueKind.Number:
+                if (element.TryGetInt64(out var longValue))
+                    return longValue;
+                else
+                    return element.GetDouble();
+            case JsonValueKind.True:
+                return true;
+            case JsonValueKind.False:
+                return false;
+            case JsonValueKind.Null:
+                return null;
+            case JsonValueKind.Array:
+                return element.ToString();
+            case JsonValueKind.Object:
+                return element.ToString();
+            default:
+                return element.ToString();
+        }
     }
 
     public void Dispose()

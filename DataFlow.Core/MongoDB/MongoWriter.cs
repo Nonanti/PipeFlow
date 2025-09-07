@@ -23,15 +23,15 @@ public class MongoWriter
     public MongoWriter(string connectionString, string databaseName, string collectionName)
     {
         if (connectionString == null)
-            throw new ArgumentNullException(nameof(connectionString));
+            throw new ArgumentNullException("connectionString");
         if (databaseName == null)
-            throw new ArgumentNullException(nameof(databaseName));
+            throw new ArgumentNullException("databaseName");
         if (collectionName == null)
-            throw new ArgumentNullException(nameof(collectionName));
+            throw new ArgumentNullException("collectionName");
         
-        this._connectionString = connectionString;
-        this._databaseName = databaseName;
-        this._collectionName = collectionName;
+        _connectionString = connectionString;
+        _databaseName = databaseName;
+        _collectionName = collectionName;
         
         _insertOptions = new InsertManyOptions();
         _insertOptions.IsOrdered = false;
@@ -77,9 +77,10 @@ public class MongoWriter
             collection = database.GetCollection<BsonDocument>(_collectionName);
         }
 
-        if (_createIndexes && _indexFields.Any())
+        if (_createIndexes)
         {
-            CreateIndexes(collection);
+            if (_indexFields.Any())
+                CreateIndexes(collection);
         }
 
         var batch = new List<BsonDocument>();
@@ -93,7 +94,9 @@ public class MongoWriter
             {
                 object filterValue = null;
                 if (row.ContainsColumn(_upsertKeyField))
+                {
                     filterValue = row[_upsertKeyField];
+                }
                 
                 if (filterValue != null)
                 {
