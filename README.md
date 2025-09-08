@@ -1,6 +1,6 @@
 # PipeFlow
 
-[![NuGet](https://img.shields.io/nuget/v/PipeFlow.Core.svg)](https://www.nuget.org/packages/PipeFlow.Core)
+[![NuGet](https://img.shields.io/nuget/v/PipeFlow.Core.svg)](https://www.nuget.org/packages/PipeFlowCore)
 [![Build Status](https://github.com/Nonanti/PipeFlow/actions/workflows/build.yml/badge.svg)](https://github.com/Nonanti/PipeFlow/actions)
 
 A .NET library for ETL operations. Process CSV, JSON, Excel, SQL and MongoDB data with a simple fluent API.
