@@ -8,7 +8,7 @@ A .NET library for ETL operations. Process CSV, JSON, Excel, SQL and MongoDB dat
 ## Installation
 
 ```bash
-dotnet add package PipeFlow
+dotnet add package PipeFlowCore
 ```
 
 ## Quick Start

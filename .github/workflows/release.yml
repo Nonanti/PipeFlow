@@ -114,7 +114,7 @@ jobs:
           
           ### Installation
           ```bash
-          dotnet add package PipeFlow --version ${{ steps.version.outputs.version }}
+          dotnet add package PipeFlowCore --version ${{ steps.version.outputs.version }}
           ```
         draft: false
         prerelease: false
