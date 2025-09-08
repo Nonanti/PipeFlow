@@ -12,33 +12,17 @@ class TestPerformance
     static async Task Main()
     {
         Console.WriteLine("=== PipeFlow Performans Test (Yeni İyileştirmeler) ===\n");
-        
-        // Test CSV dosyası oluştur
         CreateTestCsvFile("test_data.csv", 10000);
         CreateTestCsvFile("large_test_data.csv", 100000);
-        
-        // 1. Normal CSV okuma testi
         TestNormalCsvReading();
-        
-        // 2. Otomatik tip dönüşümü kapalı test
         TestCsvWithoutAutoConvert();
-        
-        // 3. Buffer boyutu karşılaştırması
         TestBufferSizes();
-        
-        // 4. Async CSV okuma testi
         await TestAsyncCsvReading();
         
-        // 5. Lazy evaluation testi
         TestLazyEvaluation();
-        
-        // 6. Parallel pipeline testi
         TestParallelPipeline();
-        
-        // 7. MongoDB test
         TestMongoDBClasses();
         
-        // 8. API test
         TestApiClasses();
         
         Console.WriteLine("\n=== Tüm İyileştirmeler Başarıyla Test Edildi ===");
@@ -190,8 +174,7 @@ class TestPerformance
         Console.WriteLine("\n5. Lazy Evaluation Testi (İyileştirilmiş):");
         
         var sw = Stopwatch.StartNew();
-        
-        // Pipeline oluştur ama execute etme
+
         var pipeline = PipeFlow.Core.PipeFlow.From.Csv("test_data.csv")
             .Filter(row => (int)row["Age"] > 30)
             .Filter(row => (bool)row["IsActive"])
