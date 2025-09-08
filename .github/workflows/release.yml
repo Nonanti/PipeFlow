@@ -48,7 +48,7 @@ jobs:
       run: dotnet test --configuration Release --no-build --verbosity normal
     
     - name: Pack
-      run: dotnet pack DataFlow.Core/DataFlow.Core.csproj --configuration Release --no-build --output nupkgs /p:PackageVersion=${{ steps.version.outputs.version }}
+      run: dotnet pack PipeFlow/PipeFlow.csproj --configuration Release --no-build --output nupkgs /p:PackageVersion=${{ steps.version.outputs.version }}
     
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
@@ -108,13 +108,13 @@ jobs:
         tag_name: v${{ steps.version.outputs.version }}
         name: Release v${{ steps.version.outputs.version }}
         body: |
-          ## DataFlow v${{ steps.version.outputs.version }}
+          ## PipeFlow v${{ steps.version.outputs.version }}
           
           High-performance ETL pipeline library for .NET.
           
           ### Installation
           ```bash
-          dotnet add package DataFlow.Core --version ${{ steps.version.outputs.version }}
+          dotnet add package PipeFlow --version ${{ steps.version.outputs.version }}
           ```
         draft: false
         prerelease: false

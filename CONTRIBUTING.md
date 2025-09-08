@@ -1,4 +1,4 @@
-# Contributing to DataFlow
+# Contributing to PipeFlow
 
 First off, thanks for taking the time to contribute!
 
@@ -36,7 +36,7 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 ```bash
 # Clone your fork
 git clone https://github.com/your-username/DataFlow.git
-cd DataFlow
+cd PipeFlow
 
 # Build the project
 dotnet build
@@ -45,7 +45,7 @@ dotnet build
 dotnet test
 
 # Run benchmarks
-dotnet run --project DataFlow.Benchmarks -c Release
+dotnet run --project PipeFlow.Benchmarks -c Release
 ```
 
 ## Code Style

@@ -1,14 +1,14 @@
 using System;
 using System.Threading.Tasks;
-using DataFlow.Core;
-using DataFlow.Core.Cloud;
+using PipeFlow.Core;
+using PipeFlow.Core.Cloud;
 using Amazon;
 
 class TestCloud
 {
     static async Task Main()
     {
-        Console.WriteLine("=== DataFlow Cloud Storage Test ===\n");
+        Console.WriteLine("=== PipeFlow Cloud Storage Test ===\n");
         
         // Test sınıflarının oluşturulması
         TestS3Classes();
@@ -94,7 +94,7 @@ class TestCloud
             var writer = new GoogleCloudStorageWriter("test-bucket", "output.csv")
                 .WithProjectId("my-project")
                 .WithStorageClass("NEARLINE")
-                .WithMetadata("created-by", "DataFlow");
+                .WithMetadata("created-by", "PipeFlow");
             Console.WriteLine("   - GoogleCloudStorageWriter sınıfı ✓");
             
             Console.WriteLine("   - Google Cloud Storage entegrasyonu hazır!");
@@ -112,7 +112,7 @@ class TestCloud
         Console.WriteLine("\n   AWS S3:");
         Console.WriteLine("   ```csharp");
         Console.WriteLine("   // S3'ten CSV okuma");
-        Console.WriteLine("   var pipeline = await DataFlow.From.S3Csv(\"my-bucket\", \"data.csv\", \"us-west-2\");");
+        Console.WriteLine("   var pipeline = await PipeFlow.From.S3Csv(\"my-bucket\", \"data.csv\", \"us-west-2\");");
         Console.WriteLine("   pipeline.Filter(row => row[\"Status\"] == \"Active\")");
         Console.WriteLine("          .ToS3Csv(\"my-bucket\", \"filtered.csv\");");
         Console.WriteLine("   ```");
@@ -120,7 +120,7 @@ class TestCloud
         Console.WriteLine("\n   Azure Blob:");
         Console.WriteLine("   ```csharp");
         Console.WriteLine("   // Azure Blob'dan okuma");
-        Console.WriteLine("   var pipeline = await DataFlow.From.AzureBlobCsv(connString, \"container\", \"data.csv\");");
+        Console.WriteLine("   var pipeline = await PipeFlow.From.AzureBlobCsv(connString, \"container\", \"data.csv\");");
         Console.WriteLine("   pipeline.Filter(row => row[\"Amount\"] > 1000)");
         Console.WriteLine("          .ToAzureBlobCsv(connString, \"container\", \"filtered.csv\");");
         Console.WriteLine("   ```");
@@ -128,7 +128,7 @@ class TestCloud
         Console.WriteLine("\n   Google Cloud Storage:");
         Console.WriteLine("   ```csharp");
         Console.WriteLine("   // GCS'den okuma");
-        Console.WriteLine("   var pipeline = await DataFlow.From.GoogleCloudCsv(\"bucket\", \"data.csv\");");
+        Console.WriteLine("   var pipeline = await PipeFlow.From.GoogleCloudCsv(\"bucket\", \"data.csv\");");
         Console.WriteLine("   pipeline.GroupBy(row => row[\"Category\"])");
         Console.WriteLine("          .ToGoogleCloudCsv(\"bucket\", \"grouped.csv\");");
         Console.WriteLine("   ```");
@@ -136,7 +136,7 @@ class TestCloud
         Console.WriteLine("\n   Cross-Cloud İşlem:");
         Console.WriteLine("   ```csharp");
         Console.WriteLine("   // S3'ten oku, Azure'a yaz");
-        Console.WriteLine("   var data = await DataFlow.From.S3Csv(\"aws-bucket\", \"input.csv\");");
+        Console.WriteLine("   var data = await PipeFlow.From.S3Csv(\"aws-bucket\", \"input.csv\");");
         Console.WriteLine("   await data.ToAzureBlobCsv(azureConn, \"container\", \"output.csv\");");
         Console.WriteLine("   ```");
     }

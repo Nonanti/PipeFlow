@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../DataFlow.Core/DataFlow.Core.csproj" />
+    <ProjectReference Include="../PipeFlow/PipeFlow.csproj" />
   </ItemGroup>
 
 </Project>

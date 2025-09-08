@@ -3,15 +3,15 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using DataFlow.Core;
-using DataFlow.Core.MongoDB;
-using DataFlow.Core.Api;
+using PipeFlow.Core;
+using PipeFlow.Core.MongoDB;
+using PipeFlow.Core.Api;
 
 class TestPerformance
 {
     static async Task Main()
     {
-        Console.WriteLine("=== DataFlow Performans Test (Yeni İyileştirmeler) ===\n");
+        Console.WriteLine("=== PipeFlow Performans Test (Yeni İyileştirmeler) ===\n");
         
         // Test CSV dosyası oluştur
         CreateTestCsvFile("test_data.csv", 10000);
@@ -63,7 +63,7 @@ class TestPerformance
         Console.WriteLine("1. Normal CSV Okuma Testi (10,000 kayıt):");
         
         var sw = Stopwatch.StartNew();
-        var count = DataFlow.Core.DataFlow.From.Csv("test_data.csv")
+        var count = PipeFlow.Core.PipeFlow.From.Csv("test_data.csv")
             .Filter(row => (int)row["Age"] > 30)
             .Count();
         sw.Stop();
@@ -77,7 +77,7 @@ class TestPerformance
         Console.WriteLine("\n2. Tip Dönüşümü Kapalı CSV Okuma (10,000 kayıt):");
         
         var sw = Stopwatch.StartNew();
-        var count = DataFlow.Core.DataFlow.From.Csv("test_data.csv", csv => csv
+        var count = PipeFlow.Core.PipeFlow.From.Csv("test_data.csv", csv => csv
             .WithAutoConvert(false))
             .Filter(row => int.Parse(row["Age"].ToString()) > 30)
             .Count();
@@ -94,7 +94,7 @@ class TestPerformance
         
         // Küçük buffer
         var sw = Stopwatch.StartNew();
-        var count1 = DataFlow.Core.DataFlow.From.Csv("large_test_data.csv", csv => csv
+        var count1 = PipeFlow.Core.PipeFlow.From.Csv("large_test_data.csv", csv => csv
             .WithBufferSize(4096))
             .Count();
         sw.Stop();
@@ -104,7 +104,7 @@ class TestPerformance
         
         // Normal buffer (varsayılan 64KB)
         sw.Restart();
-        var count2 = DataFlow.Core.DataFlow.From.Csv("large_test_data.csv")
+        var count2 = PipeFlow.Core.PipeFlow.From.Csv("large_test_data.csv")
             .Count();
         sw.Stop();
         var normalBufferTime = sw.ElapsedMilliseconds;
@@ -113,7 +113,7 @@ class TestPerformance
         
         // Büyük buffer
         sw.Restart();
-        var count3 = DataFlow.Core.DataFlow.From.Csv("large_test_data.csv", csv => csv
+        var count3 = PipeFlow.Core.PipeFlow.From.Csv("large_test_data.csv", csv => csv
             .WithBufferSize(256 * 1024))
             .Count();
         sw.Stop();
@@ -129,7 +129,7 @@ class TestPerformance
         var sw = Stopwatch.StartNew();
         var count = 0;
         
-        await foreach (var row in DataFlow.Core.DataFlow.From.CsvAsync("test_data.csv"))
+        await foreach (var row in PipeFlow.Core.PipeFlow.From.CsvAsync("test_data.csv"))
         {
             if ((int)row["Age"] > 30)
                 count++;
@@ -146,7 +146,7 @@ class TestPerformance
         Console.WriteLine("\n2. Filter ve Map Testi (10,000 kayıt):");
         
         var sw = Stopwatch.StartNew();
-        var results = DataFlow.Core.DataFlow.From.Csv("test_data.csv")
+        var results = PipeFlow.Core.PipeFlow.From.Csv("test_data.csv")
             .Filter(row => (int)row["Age"] > 30)
             .Map(row => new {
                 Name = row["Name"],
@@ -167,7 +167,7 @@ class TestPerformance
         Console.WriteLine("\n3. GroupBy Testi:");
         
         var sw = Stopwatch.StartNew();
-        var grouped = DataFlow.Core.DataFlow.From.Csv("test_data.csv")
+        var grouped = PipeFlow.Core.PipeFlow.From.Csv("test_data.csv")
             .GroupBy(row => row["Department"])
             .Select(g => new {
                 Department = g.Key,
@@ -192,7 +192,7 @@ class TestPerformance
         var sw = Stopwatch.StartNew();
         
         // Pipeline oluştur ama execute etme
-        var pipeline = DataFlow.Core.DataFlow.From.Csv("test_data.csv")
+        var pipeline = PipeFlow.Core.PipeFlow.From.Csv("test_data.csv")
             .Filter(row => (int)row["Age"] > 30)
             .Filter(row => (bool)row["IsActive"])
             .Map(row => new { 
@@ -218,7 +218,7 @@ class TestPerformance
         
         // Normal pipeline
         var sw = Stopwatch.StartNew();
-        var normalCount = DataFlow.Core.DataFlow.From.Csv("large_test_data.csv")
+        var normalCount = PipeFlow.Core.PipeFlow.From.Csv("large_test_data.csv")
             .Filter(row => (int)row["Age"] > 30)
             .Map(row => (int)row["Salary"] * 1.1)
             .Count();
@@ -229,7 +229,7 @@ class TestPerformance
         
         // Parallel pipeline
         sw.Restart();
-        var parallelCount = DataFlow.Core.DataFlow.From.Csv("large_test_data.csv")
+        var parallelCount = PipeFlow.Core.PipeFlow.From.Csv("large_test_data.csv")
             .Parallel(4)
             .Filter(row => (int)row["Age"] > 30)
             .Map(row => (int)row["Salary"] * 1.1)
@@ -259,8 +259,8 @@ class TestPerformance
                   .WithUpsert("_id");
             Console.WriteLine("   - MongoWriter sınıfı ✓");
             
-            // DataFlow MongoDB integration test
-            var pipeline = DataFlow.Core.DataFlow.From.MongoDB("mongodb://localhost", "testdb", "testcol");
+            // PipeFlow MongoDB integration test
+            var pipeline = PipeFlow.Core.PipeFlow.From.MongoDB("mongodb://localhost", "testdb", "testcol");
             Console.WriteLine("   - MongoDB Pipeline entegrasyonu ✓");
         }
         catch (Exception ex)
@@ -288,8 +288,8 @@ class TestPerformance
                   .WithBatchSize(100);
             Console.WriteLine("   - ApiWriter sınıfı ✓");
             
-            // DataFlow API integration test
-            var pipeline = DataFlow.Core.DataFlow.From.Api("https://api.example.com/data");
+            // PipeFlow API integration test
+            var pipeline = PipeFlow.Core.PipeFlow.From.Api("https://api.example.com/data");
             Console.WriteLine("   - API Pipeline entegrasyonu ✓");
         }
         catch (Exception ex)
