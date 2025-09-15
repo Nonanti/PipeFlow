@@ -72,3 +72,12 @@ BenchmarkDotNet.Artifacts/
 *.coverage
 *.coveragexml
 coverage.json
+
+# Test files
+test_data.csv
+large_test_data.csv
+employees.csv
+employees.json
+products.json
+*.test.csv
+*.test.json

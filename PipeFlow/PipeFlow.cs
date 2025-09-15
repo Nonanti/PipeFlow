@@ -11,6 +11,7 @@ using PipeFlow.Core.MongoDB;
 using PipeFlow.Core.Cloud;
 using PipeFlow.Core.Parallel;
 using PipeFlow.Core.Validation;
+using PipeFlow.Core.PostgreSQL;
 using Amazon;
 
 namespace PipeFlow.Core;
@@ -124,6 +125,19 @@ public static class PipeFlow
     public IPipeline<DataRow> MongoDB(string connectionString, string database, string collection, Action<MongoReader> configure)
     {
         var reader = new MongoReader(connectionString, database, collection);
+        configure?.Invoke(reader);
+        return new Pipeline<DataRow>(reader.Read());
+    }
+
+    public IPipeline<DataRow> PostgreSql(string connectionString, string query)
+    {
+        var reader = new PostgreSqlReader(connectionString).Query(query);
+        return new Pipeline<DataRow>(reader.Read());
+    }
+
+    public IPipeline<DataRow> PostgreSql(string connectionString, Action<PostgreSqlReader> configure)
+    {
+        var reader = new PostgreSqlReader(connectionString);
         configure?.Invoke(reader);
         return new Pipeline<DataRow>(reader.Read());
     }
@@ -405,6 +419,34 @@ public static class PipelineExtensions
         var writer = new MongoWriter(connectionString, database, collection);
         configure?.Invoke(writer);
         writer.Write(pipeline.Execute());
+    }
+
+    public static void ToPostgreSql(this IPipeline<DataRow> pipeline, string connectionString, string tableName)
+    {
+        if (pipeline == null)
+            throw new ArgumentNullException(nameof(pipeline));
+        
+        var writer = new PostgreSqlWriter(connectionString, tableName);
+        writer.Write(pipeline.Execute());
+    }
+
+    public static void ToPostgreSql(this IPipeline<DataRow> pipeline, string connectionString, string tableName, Action<PostgreSqlWriter> configure)
+    {
+        if (pipeline == null)
+            throw new ArgumentNullException(nameof(pipeline));
+        
+        var writer = new PostgreSqlWriter(connectionString, tableName);
+        configure?.Invoke(writer);
+        writer.Write(pipeline.Execute());
+    }
+
+    public static void ToPostgreSqlBulk(this IPipeline<DataRow> pipeline, string connectionString, string tableName)
+    {
+        if (pipeline == null)
+            throw new ArgumentNullException(nameof(pipeline));
+        
+        var writer = new PostgreSqlWriter(connectionString, tableName);
+        writer.BulkWrite(pipeline.Execute());
     }
 
     public static IPipeline<IGrouping<TKey, DataRow>> GroupBy<TKey>(

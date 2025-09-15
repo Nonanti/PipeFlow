@@ -11,7 +11,7 @@ class TestPerformance
 {
     static async Task Main()
     {
-        Console.WriteLine("=== PipeFlow Performans Test (Yeni İyileştirmeler) ===\n");
+        Console.WriteLine("=== PipeFlow Performance Test (New Improvements) ===\n");
         CreateTestCsvFile("test_data.csv", 10000);
         CreateTestCsvFile("large_test_data.csv", 100000);
         TestNormalCsvReading();
@@ -25,7 +25,7 @@ class TestPerformance
         
         TestApiClasses();
         
-        Console.WriteLine("\n=== Tüm İyileştirmeler Başarıyla Test Edildi ===");
+        Console.WriteLine("\n=== All Improvements Successfully Tested ===");
     }
     
     static void CreateTestCsvFile(string filename, int rowCount)
@@ -44,7 +44,7 @@ class TestPerformance
     
     static void TestNormalCsvReading()
     {
-        Console.WriteLine("1. Normal CSV Okuma Testi (10,000 kayıt):");
+        Console.WriteLine("1. Normal CSV Reading Test (10,000 records):");
         
         var sw = Stopwatch.StartNew();
         var count = PipeFlow.Core.PipeFlow.From.Csv("test_data.csv")
@@ -52,13 +52,13 @@ class TestPerformance
             .Count();
         sw.Stop();
         
-        Console.WriteLine($"   - Süre: {sw.ElapsedMilliseconds} ms");
-        Console.WriteLine($"   - Filtrelenen kayıt sayısı: {count}");
+        Console.WriteLine($"   - Duration: {sw.ElapsedMilliseconds} ms");
+        Console.WriteLine($"   - Filtered record count: {count}");
     }
     
     static void TestCsvWithoutAutoConvert()
     {
-        Console.WriteLine("\n2. Tip Dönüşümü Kapalı CSV Okuma (10,000 kayıt):");
+        Console.WriteLine("\n2. CSV Reading Without Type Conversion (10,000 records):");
         
         var sw = Stopwatch.StartNew();
         var count = PipeFlow.Core.PipeFlow.From.Csv("test_data.csv", csv => csv
@@ -67,14 +67,14 @@ class TestPerformance
             .Count();
         sw.Stop();
         
-        Console.WriteLine($"   - Süre: {sw.ElapsedMilliseconds} ms");
-        Console.WriteLine($"   - Filtrelenen kayıt sayısı: {count}");
-        Console.WriteLine($"   - Otomatik tip dönüşümü kapalı, daha hızlı olmalı");
+        Console.WriteLine($"   - Duration: {sw.ElapsedMilliseconds} ms");
+        Console.WriteLine($"   - Filtered record count: {count}");
+        Console.WriteLine($"   - Automatic type conversion disabled, should be faster");
     }
     
     static void TestBufferSizes()
     {
-        Console.WriteLine("\n3. Buffer Boyutu Karşılaştırması (100,000 kayıt):");
+        Console.WriteLine("\n3. Buffer Size Comparison (100,000 records):");
         
         // Küçük buffer
         var sw = Stopwatch.StartNew();
@@ -93,7 +93,7 @@ class TestPerformance
         sw.Stop();
         var normalBufferTime = sw.ElapsedMilliseconds;
         
-        Console.WriteLine($"   - 64KB buffer (varsayılan): {normalBufferTime} ms");
+        Console.WriteLine($"   - 64KB buffer (default): {normalBufferTime} ms");
         
         // Büyük buffer
         sw.Restart();
@@ -103,12 +103,12 @@ class TestPerformance
         sw.Stop();
         
         Console.WriteLine($"   - 256KB buffer: {sw.ElapsedMilliseconds} ms");
-        Console.WriteLine($"   - En iyi performans: {Math.Min(Math.Min(smallBufferTime, normalBufferTime), sw.ElapsedMilliseconds)} ms");
+        Console.WriteLine($"   - Best performance: {Math.Min(Math.Min(smallBufferTime, normalBufferTime), sw.ElapsedMilliseconds)} ms");
     }
     
     static async Task TestAsyncCsvReading()
     {
-        Console.WriteLine("\n4. Async CSV Okuma Testi (10,000 kayıt):");
+        Console.WriteLine("\n4. Async CSV Reading Test (10,000 records):");
         
         var sw = Stopwatch.StartNew();
         var count = 0;
@@ -120,14 +120,14 @@ class TestPerformance
         }
         sw.Stop();
         
-        Console.WriteLine($"   - Süre: {sw.ElapsedMilliseconds} ms");
-        Console.WriteLine($"   - Filtrelenen kayıt sayısı: {count}");
-        Console.WriteLine($"   - Async I/O kullanıldı");
+        Console.WriteLine($"   - Duration: {sw.ElapsedMilliseconds} ms");
+        Console.WriteLine($"   - Filtered record count: {count}");
+        Console.WriteLine($"   - Async I/O used");
     }
     
     static void TestFilterAndMap()
     {
-        Console.WriteLine("\n2. Filter ve Map Testi (10,000 kayıt):");
+        Console.WriteLine("\n2. Filter and Map Test (10,000 records):");
         
         var sw = Stopwatch.StartNew();
         var results = PipeFlow.Core.PipeFlow.From.Csv("test_data.csv")
@@ -141,14 +141,14 @@ class TestPerformance
             .ToList();
         sw.Stop();
         
-        Console.WriteLine($"   - Süre: {sw.ElapsedMilliseconds} ms");
-        Console.WriteLine($"   - İlk 10 kayıt alındı");
-        Console.WriteLine($"   - Örnek: {results.First().Name}, Age: {results.First().Age}");
+        Console.WriteLine($"   - Duration: {sw.ElapsedMilliseconds} ms");
+        Console.WriteLine($"   - First 10 records taken");
+        Console.WriteLine($"   - Example: {results.First().Name}, Age: {results.First().Age}");
     }
     
     static void TestGroupBy()
     {
-        Console.WriteLine("\n3. GroupBy Testi:");
+        Console.WriteLine("\n3. GroupBy Test:");
         
         var sw = Stopwatch.StartNew();
         var grouped = PipeFlow.Core.PipeFlow.From.Csv("test_data.csv")
@@ -161,17 +161,17 @@ class TestPerformance
             .ToList();
         sw.Stop();
         
-        Console.WriteLine($"   - Süre: {sw.ElapsedMilliseconds} ms");
-        Console.WriteLine($"   - Departman sayısı: {grouped.Count}");
+        Console.WriteLine($"   - Duration: {sw.ElapsedMilliseconds} ms");
+        Console.WriteLine($"   - Department count: {grouped.Count}");
         foreach (var dept in grouped)
         {
-            Console.WriteLine($"     {dept.Department}: {dept.Count} kişi, Ortalama yaş: {dept.AvgAge:F1}");
+            Console.WriteLine($"     {dept.Department}: {dept.Count} people, Average age: {dept.AvgAge:F1}");
         }
     }
     
     static void TestLazyEvaluation()
     {
-        Console.WriteLine("\n5. Lazy Evaluation Testi (İyileştirilmiş):");
+        Console.WriteLine("\n5. Lazy Evaluation Test (Improved):");
         
         var sw = Stopwatch.StartNew();
 
@@ -184,20 +184,20 @@ class TestPerformance
             });
         
         var setupTime = sw.ElapsedMilliseconds;
-        Console.WriteLine($"   - Pipeline setup süresi: {setupTime} ms");
+        Console.WriteLine($"   - Pipeline setup time: {setupTime} ms");
         
-        // Şimdi execute et
+        // Now execute
         sw.Restart();
         var firstFive = pipeline.Take(5).ToList();
         sw.Stop();
         
-        Console.WriteLine($"   - İlk 5 kayıt alma süresi: {sw.ElapsedMilliseconds} ms");
-        Console.WriteLine($"   - Lazy evaluation sayesinde tüm dosya okunmadı");
+        Console.WriteLine($"   - First 5 records retrieval time: {sw.ElapsedMilliseconds} ms");
+        Console.WriteLine($"   - Full file not read thanks to lazy evaluation");
     }
     
     static void TestParallelPipeline()
     {
-        Console.WriteLine("\n6. Parallel Pipeline Testi - PLINQ Kullanıyor (100,000 kayıt):");
+        Console.WriteLine("\n6. Parallel Pipeline Test - Using PLINQ (100,000 records):");
         
         // Normal pipeline
         var sw = Stopwatch.StartNew();
@@ -220,12 +220,12 @@ class TestPerformance
         sw.Stop();
         
         Console.WriteLine($"   - Parallel pipeline (4 thread): {sw.ElapsedMilliseconds} ms");
-        Console.WriteLine($"   - Hızlanma: {(double)normalTime / sw.ElapsedMilliseconds:F2}x");
+        Console.WriteLine($"   - Speedup: {(double)normalTime / sw.ElapsedMilliseconds:F2}x");
     }
     
     static void TestMongoDBClasses()
     {
-        Console.WriteLine("\n7. MongoDB Sınıf Testi:");
+        Console.WriteLine("\n7. MongoDB Class Test:");
         
         try
         {
@@ -234,27 +234,27 @@ class TestPerformance
             reader.Where("status", "active")
                   .Sort("name")
                   .Limit(10);
-            Console.WriteLine("   - MongoReader sınıfı ✓");
+            Console.WriteLine("   - MongoReader sinifi OK");
             
             // MongoWriter test
             var writer = new MongoWriter("mongodb://localhost", "testdb", "testcol");
             writer.WithBatchSize(500)
                   .WithUpsert("_id");
-            Console.WriteLine("   - MongoWriter sınıfı ✓");
+            Console.WriteLine("   - MongoWriter sinifi OK");
             
             // PipeFlow MongoDB integration test
             var pipeline = PipeFlow.Core.PipeFlow.From.MongoDB("mongodb://localhost", "testdb", "testcol");
-            Console.WriteLine("   - MongoDB Pipeline entegrasyonu ✓");
+            Console.WriteLine("   - MongoDB Pipeline entegrasyonu OK");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"   - MongoDB test hatası: {ex.Message}");
+            Console.WriteLine($"   - MongoDB test error: {ex.Message}");
         }
     }
     
     static void TestApiClasses()
     {
-        Console.WriteLine("\n8. API Sınıf Testi:");
+        Console.WriteLine("\n8. API Class Test:");
         
         try
         {
@@ -263,21 +263,21 @@ class TestPerformance
             reader.WithAuth("test-token", "Bearer")
                   .WithRetry(3, TimeSpan.FromSeconds(1))
                   .WithPagination(100, "page", "pageSize");
-            Console.WriteLine("   - ApiReader sınıfı ✓");
+            Console.WriteLine("   - ApiReader sinifi OK");
             
             // ApiWriter test
             var writer = new ApiWriter("https://api.example.com/data");
             writer.WithAuth("test-token", "Bearer")
                   .WithBatchSize(100);
-            Console.WriteLine("   - ApiWriter sınıfı ✓");
+            Console.WriteLine("   - ApiWriter sinifi OK");
             
             // PipeFlow API integration test
             var pipeline = PipeFlow.Core.PipeFlow.From.Api("https://api.example.com/data");
-            Console.WriteLine("   - API Pipeline entegrasyonu ✓");
+            Console.WriteLine("   - API Pipeline entegrasyonu OK");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"   - API test hatası: {ex.Message}");
+            Console.WriteLine($"   - API test error: {ex.Message}");
         }
     }
 }
