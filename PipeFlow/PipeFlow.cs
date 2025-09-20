@@ -115,6 +115,20 @@ public static class PipeFlow
         configure?.Invoke(reader);
         return new Pipeline<DataRow>(reader.Read());
     }
+    
+    public IPipeline<TResult> Api<TResult>(string url, Action<ApiReader<TResult>>? configure = null)
+    {
+        var reader = new ApiReader<TResult>(url);
+        configure?.Invoke(reader);
+        return new Pipeline<TResult>([reader.Read()]);
+    }
+    
+    public async Task<IPipeline<TResult>> ApiAsync<TResult>(string url, Action<ApiReader<TResult>>? configure = null)
+    {
+        var reader = new ApiReader<TResult>(url);
+        configure?.Invoke(reader);
+        return new Pipeline<TResult>([await reader.ReadAsync()]);
+    }
 
     public IPipeline<DataRow> MongoDB(string connectionString, string database, string collection)
     {
