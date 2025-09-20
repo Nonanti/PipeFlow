@@ -1,52 +1,34 @@
-using System;
-using System.Collections.Generic;
-using System.Net.Http;
 using System.Text.Json;
-using System.Threading.Tasks;
-using System.Linq;
-using PipeFlow.Core;
 
 namespace PipeFlow.Core.Api;
 
-public class ApiReader
+public sealed class ApiReader : ApiReader<IEnumerable<DataRow>>
 {
-    private readonly string _baseUrl;
-    private readonly HttpClient _httpClient;
-    private string _authToken;
-    private Dictionary<string, string> _headers;
-    private int _maxRetries = 3;
-    private TimeSpan _retryDelay = TimeSpan.FromSeconds(1);
     private int? _pageSize;
     private string _pageParameter = "page";
     private string _pageSizeParameter = "pageSize";
 
     public ApiReader(string baseUrl)
+        : base(baseUrl)
     {
-        if (baseUrl == null)
-            throw new ArgumentNullException("baseUrl");
-            
-        _baseUrl = baseUrl;
-        _httpClient = new HttpClient();
-        _headers = new Dictionary<string, string>();
+        
     }
 
-    public ApiReader WithAuth(string token, string scheme = "Bearer")
+    public override ApiReader WithAuth(string token, string scheme = "Bearer")
     {
-        _authToken = $"{scheme} {token}";
+        base.WithAuth(token, scheme);
         return this;
     }
 
-    public ApiReader WithHeader(string name, string value)
+    public override ApiReader WithHeader(string name, string value)
     {
-        _headers[name] = value;
+        base.WithHeader(name, value);
         return this;
     }
 
-    public ApiReader WithRetry(int maxRetries, TimeSpan? delay = null)
+    public override ApiReader WithRetry(int maxRetries, TimeSpan? delay = null)
     {
-        _maxRetries = maxRetries;
-        if (delay != null)
-            _retryDelay = delay.Value;
+        base.WithRetry(maxRetries, delay);
         return this;
     }
 
@@ -58,7 +40,7 @@ public class ApiReader
         return this;
     }
 
-    public IEnumerable<DataRow> Read()
+    public override IEnumerable<DataRow> Read()
     {
         var task = Task.Run(async () => await ReadAsync());
         task.Wait();
@@ -69,14 +51,14 @@ public class ApiReader
         }
     }
 
-    private async Task<IEnumerable<DataRow>> ReadAsync()
+    public override async Task<IEnumerable<DataRow>> ReadAsync()
     {
         var results = new List<DataRow>();
 
         if (_pageSize != null)
         {
-            int page = 1;
-            bool hasMoreData = true;
+            var page = 1;
+            var hasMoreData = true;
 
             while (hasMoreData)
             {
@@ -96,7 +78,7 @@ public class ApiReader
         }
         else
         {
-            var data = await FetchDataWithRetry(_baseUrl);
+            var data = await FetchDataWithRetry(BaseUrl);
             if (data != null)
                 results.AddRange(data);
         }
@@ -106,35 +88,31 @@ public class ApiReader
 
     private string BuildPaginatedUrl(int page)
     {
-        string separator;
-        if (_baseUrl.Contains("?"))
-            separator = "&";
-        else
-            separator = "?";
-        return $"{_baseUrl}{separator}{_pageParameter}={page}&{_pageSizeParameter}={_pageSize}";
+        var separator = BaseUrl.Contains('?') ? "&" : "?";
+        return $"{BaseUrl}{separator}{_pageParameter}={page}&{_pageSizeParameter}={_pageSize}";
     }
 
-    private async Task<IEnumerable<DataRow>> FetchDataWithRetry(string url)
+    protected override async Task<IEnumerable<DataRow>> FetchDataWithRetry(string url)
     {
-        int attempt = 0;
+        var attempt = 0;
         
-        while (attempt < _maxRetries)
+        while (attempt < MaxRetries)
         {
             try
             {
                 var request = new HttpRequestMessage(HttpMethod.Get, url);
                 
-                if (_authToken != null)
+                if (AuthToken != null)
                 {
-                    request.Headers.Add("Authorization", _authToken);
+                    request.Headers.Add("Authorization", AuthToken);
                 }
 
-                foreach (var header in _headers)
+                foreach (var header in Headers)
                 {
                     request.Headers.Add(header.Key, header.Value);
                 }
 
-                var response = await _httpClient.SendAsync(request);
+                var response = await HttpClient.SendAsync(request);
                 
                 if (response.IsSuccessStatusCode)
                 {
@@ -143,19 +121,19 @@ public class ApiReader
                 }
 
                 attempt++;
-                if (attempt < _maxRetries)
+                if (attempt < MaxRetries)
                 {
-                    await Task.Delay(_retryDelay * attempt);
+                    await Task.Delay(RetryDelay * attempt);
                 }
             }
             catch (Exception ex)
             {
                 attempt++;
-                if (attempt >= _maxRetries)
+                if (attempt >= MaxRetries)
                 {
-                    throw new Exception($"Failed to fetch data from {url} after {_maxRetries} attempts", ex);
+                    throw new Exception($"Failed to fetch data from {url} after {MaxRetries} attempts", ex);
                 }
-                await Task.Delay(_retryDelay * attempt);
+                await Task.Delay(RetryDelay * attempt);
             }
         }
 
@@ -253,10 +231,5 @@ public class ApiReader
             default:
                 return element.ToString();
         }
-    }
-
-    public void Dispose()
-    {
-        _httpClient?.Dispose();
     }
 }
