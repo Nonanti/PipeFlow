@@ -250,7 +250,7 @@ PipeFlowConfig.Configure(config => {
 
 ## Requirements
 
-- .NET 6.0 or later
+- .NET 8.0 or later
 - SQL Server 2012+ (for SQL features)
 - MongoDB 4.0+ (for MongoDB features)
 
